@@ -1,0 +1,192 @@
+PROJECT DOCUMENTATION: RACING IN IUT
+======================================
+Author: Ahnaf Shahriar Pias (ID: 220042146)
+Course: Software Design Principles (SWE-4502)
+Project: Beginner-Friendly Java Design Patterns Simulation
+
+1. PROJECT OVERVIEW
+-------------------
+"Racing In IUT" is a comprehensive software engineering project designed to demonstrate the practical application of key Object-Oriented Design Patterns in Java. 
+
+Unlike a full-fledged graphical game, this project focuses on the architectural skeleton of a game engine. It uses console-based output (System.out.println) to simulate behaviors, states, and interactions between various game entities like Cars, Engines, Tracks, and Races.
+
+The primary goal is to show how different design patterns can solve specific structural and behavioral problems in software design, such as object creation, algorithm encapsulation, and dynamic behavior modification.
+
+2. DETAILED FOLDER & PACKAGE STRUCTURE
+--------------------------------------
+The source code is strictly organized into packages under `src/rii/` to separate concerns and modularize the codebase.
+
+A. `src/rii/main/`
+   - **Rii.java**: This is the Main Class and the entry point of the application. 
+     - *Role*: It acts as the client that orchestrates the entire application flow.
+     - *Responsibility*: It handles all user interactions via the console (Scanner), calls various Factories to create objects, and initiates the race.
+     - *Key Constraint*: It minimizes the use of the `new` keyword, relying almost entirely on static factory methods for object instantiation.
+
+B. `src/rii/player/`
+   - **Player.java**: Represents the user playing the game.
+     - *Pattern*: Singleton.
+     - *Role*: Ensures there is one and only one player active during the session.
+
+C. `src/rii/strategy/engine/`
+   - **EngineStrategy.java**: An interface defining the contract for engine behavior (`showEngine()`).
+   - **V6Engine.java, V8Engine.java, V12Engine.java**: Concrete classes implementing the interface.
+     - *Pattern*: Strategy.
+     - *Role*: These classes encapsulate the specific behavior of different engine types.
+
+D. `src/rii/strategy/turbo/`
+   - **TurboStrategy.java**: An interface defining the contract for turbocharger behavior (`showTurbo()`).
+   - **AlpineTurbo.java, CumminsTurbo.java, HoneywellTurbo.java**: Concrete implementations.
+     - *Pattern*: Strategy.
+     - *Role*: Encapsulate the behavior of different turbo brands.
+
+E. `src/rii/car/`
+   - **Car.java**: The abstract base class for all vehicles.
+     - *Role*: It holds references to `EngineStrategy` and `TurboStrategy` (Composition). It delegates the `showSpecifications()` calls to these strategies.
+   - **CarCategory.java**: An Enum (COUPE, ROADSTER) used to categorize cars for the Abstract Factory.
+   - **ToyotaGR86.java, SubaruBRZ.java**: Concrete subclasses representing Coupe cars.
+   - **PorscheBoxster.java, Ferrari812.java**: Concrete subclasses representing Roadster cars.
+
+F. `src/rii/factory/`
+   - **CarFactory.java**: The abstract interface for creating cars.
+   - **CoupeFactory.java**: A concrete factory that produces Coupe cars (Toyota, Subaru).
+   - **RoadsterFactory.java**: A concrete factory that produces Roadster cars (Porsche, Ferrari).
+     - *Pattern*: Abstract Factory.
+   - **FactoryProducer.java**: A static generator class that creates the appropriate CarFactory based on user input.
+   - **TrackFactory.java, EngineFactory.java, TurboFactory.java, RaceFactory.java, InputFactory.java**:
+     - *Pattern*: Simple Factory.
+     - *Role*: These helper classes abstract away the instantiation logic (switch/if-else statements) from the Main class.
+
+G. `src/rii/track/`
+   - **Track.java**: Abstract base class for racing tracks.
+   - **BlueMoonBay.java, BBRaceway.java, Spa.java**: Concrete track implementations.
+   - **TrackType.java**: Enum for type safety.
+
+H. `src/rii/decorator/`
+   - **CarDecorator.java**: Abstract wrapper class extending `Car`.
+     - *Pattern*: Decorator.
+     - *Role*: It holds a reference to a `Car` object and delegates all method calls to it.
+   - **NOSResonac.java, NOSSema.java**: Concrete decorators.
+     - *Role*: They add specific NOS (Nitrous Oxide System) behavior (`applyNOS()`) to the `accelerate()` method at runtime.
+
+I. `src/rii/race/`
+   - **Race.java**: Abstract base class defining the race algorithm.
+     - *Pattern*: Template Method.
+     - *Role*: Defines the skeleton of the race in the `race()` method, which is `final` to prevent overriding.
+   - **SprintRace.java, CircuitRace.java**: Concrete implementations providing specific details for the start and finish lines.
+
+3. IN-DEPTH DESIGN PATTERNS IMPLEMENTATION
+------------------------------------------
+
+A. SINGLETON PATTERN
+   - **Problem**: In a game session, we need a single point of truth for the Player identity. Creating multiple player instances could lead to inconsistent states.
+   - **Solution**: The `Player` class has a `private static` instance and a `private constructor`.
+   - **Access**: The only way to get the object is via `Player.getInstance()`. If the instance doesn't exist, it creates one; otherwise, it returns the existing one.
+   - **Benefit**: Controlled access to the sole instance.
+
+B. STRATEGY PATTERN
+   - **Problem**: Cars have different engines and turbos. Using inheritance (e.g., `CarWithV6`, `CarWithV8`) would lead to a class explosion. Also, we might want to change the engine at runtime.
+   - **Solution**: We define `EngineStrategy` and `TurboStrategy` interfaces. The `Car` class has fields of these interface types.
+   - **Implementation**: The `Car` class doesn't implement the engine logic itself; it delegates it (`engineStrategy.showEngine()`).
+   - **Benefit**: We can swap algorithms (engines) dynamically. A `ToyotaGR86` can start with a V6 and upgrade to a V8 without changing the `ToyotaGR86` class code.
+
+C. ABSTRACT FACTORY PATTERN
+   - **Problem**: We have families of related objects: Coupes (Toyota, Subaru) and Roadsters (Porsche, Ferrari). We want to ensure that a client creating a Coupe doesn't accidentally get a Roadster logic mixed in.
+   - **Solution**: `CarFactory` is the interface. `CoupeFactory` and `RoadsterFactory` are the implementations.
+   - **Implementation**: `FactoryProducer` determines which factory to build. If the user wants a "Coupe", they get a `CoupeFactory`. That factory then only produces `Toyota` or `Subaru`.
+   - **Benefit**: Enforces consistency among products. Isolates concrete classes from the client.
+
+D. SIMPLE FACTORY PATTERN
+   - **Problem**: The Main class (`Rii.java`) was cluttered with `new V6Engine()`, `new AlpineTurbo()`, `new SprintRace()`, etc. This tight coupling makes the Main class hard to maintain.
+   - **Solution**: We moved this creation logic into dedicated factory classes: `EngineFactory`, `TurboFactory`, `TrackFactory`, `RaceFactory`.
+   - **Implementation**: These classes have static methods like `createEngine(String type)` which contain the `if-else` logic to return the correct object.
+   - **Benefit**: The Main class follows the Open/Closed Principle more closely. Adding a new engine type only requires changing `EngineFactory`, not the Main class logic.
+
+E. DECORATOR PATTERN
+   - **Problem**: We want to add NOS (Nitrous Oxide) to a car. If we used inheritance (`CarWithNOS`), we would need `ToyotaWithNOS`, `FerrariWithNOS`, etc., doubling our class count. Furthermore, NOS is a temporary state added *during* the race (at the Pit Stop).
+   - **Solution**: We wrap the existing `Car` object inside a `CarDecorator`.
+   - **Implementation**: `NOSResonac` extends `CarDecorator`. When `accelerate()` is called, it calls `super.accelerate()` (the original car's acceleration) AND adds its own `applyNOS()` behavior.
+   - **Benefit**: Flexible alternative to subclassing for extending functionality. We can add responsibilities to individual objects dynamically and transparently.
+
+F. TEMPLATE METHOD PATTERN
+   - **Problem**: Every race (Sprint or Circuit) follows the same sequence: Info -> Start -> Accelerate -> Pit Stop -> Finish -> Time. However, the *start* and *finish* messages differ for each race type.
+   - **Solution**: The `Race` abstract class defines a `final void race()` method. This method lists the steps in order.
+   - **Implementation**:
+     - The steps that are the same for everyone (like `pitStop`) are implemented in the base class.
+     - The steps that vary (`startLine`, `finishLine`) are declared as `abstract`.
+     - `SprintRace` and `CircuitRace` must implement these abstract methods.
+   - **Benefit**: Reuse of common code (the race algorithm) while allowing subclasses to customize specific steps. Inversion of control: the parent class calls the operations of a subclass.
+
+4. DETAILED CODE FLOW & EXECUTION (Rii.java)
+--------------------------------------------
+
+When you run the `Rii` class, the following sequence of events occurs:
+
+Step 1: Initialization
+   - `InputFactory` creates a `Scanner` object.
+   - `Player.getInstance()` is called. The Singleton ensures a player is ready.
+
+Step 2: Car Creation (Abstract Factory)
+   - The program asks: "Select Car Category (COUPE/ROADSTER)".
+   - `FactoryProducer.getCarFactory(input)` is called.
+   - If user types "COUPE", a `CoupeFactory` object is returned.
+   - The program asks: "Enter Car Model".
+   - `carFactory.createCar(input)` is called.
+   - If user types "ToyotaGR86", a `ToyotaGR86` object is created and returned.
+
+Step 3: Configuration (Strategy & Simple Factory)
+   - The program asks for Engine Type (V6/V8/V12).
+   - `EngineFactory.createEngine(input)` creates the specific engine strategy.
+   - `car.setEngineStrategy(engine)` injects this behavior into the car.
+   - The same process repeats for the TurboStrategy using `TurboFactory`.
+
+Step 4: Environment Setup (Simple Factory)
+   - The program asks for a Track.
+   - `TrackFactory.createTrack(input)` instantiates the correct track (e.g., `BlueMoonBay`).
+   - The program asks for Race Type.
+   - `RaceFactory.createRace(input)` instantiates `SprintRace` or `CircuitRace`.
+
+Step 5: The Race (Template Method)
+   - The Main class calls `race.race(car, track)`. Control is handed over to the `Race` class.
+   - **Sequence**:
+     1. `car.carInfo()`: Prints model name.
+     2. `track.trackInfo()`: Prints track location.
+     3. `car.showSpecifications()`: Delegates to Engine and Turbo strategies to print specs.
+     4. `car.start()`: Prints generic start message.
+     5. `startLine(track)`: **Polymorphic Call**. If it's a SprintRace, it prints "Sprint Race Started".
+     6. `car.accelerate()`: Prints generic acceleration message.
+     7. `pitStop(car)`: **Interaction Point**.
+        - The user is asked to add NOS.
+        - If YES, `new NOSResonac(car)` is called.
+        - The `car` reference now points to the *Decorated* object, not the original car.
+     8. `car.accelerate()`:
+        - If NOS was added, this calls the Decorator's accelerate method.
+        - It prints the normal acceleration AND "Resonac NOS applied".
+     9. `finishLine(track)`: **Polymorphic Call**.
+        - `SprintRace` prints "End of Track Reached".
+        - `CircuitRace` prints "Completed One Full Lap - Back at Start Line".
+    10. `car.stop()`: Prints generic stop message.
+    11. `lapTime()`: Generates a random time, formats it as HH:mm:ss, and prints it.
+
+5. SPEECH-READY EXPLANATION (Script)
+------------------------------------
+"Hello everyone. Today I am presenting 'Racing In IUT', a software design simulation that demonstrates the power of Object-Oriented Design Patterns.
+
+The core problem in software engineering is managing change and complexity. If we built a racing game using simple if-else statements or rigid inheritance, adding new features—like a new engine type or a new race mode—would break existing code. To solve this, I have architected this system using five distinct design patterns.
+
+First, the **Singleton Pattern**. In any game, the 'Player' is a unique entity. We don't want multiple instances of the player floating around, causing state conflicts. I implemented the Player class with a private constructor and a static instance to guarantee global uniqueness.
+
+Second, the **Strategy Pattern**. A car is complex. It has an engine, a turbo, tires, etc. If I hardcoded a V6 engine into a 'Toyota' class, I couldn't easily upgrade it to a V8 later. By using the Strategy pattern, I defined 'Engine' as an interface. The Car class just holds a reference to this interface. This allows us to plug in a V6, V8, or V12 engine dynamically at runtime, making our Car classes highly flexible.
+
+Third, the **Abstract Factory Pattern**. We have different categories of cars: Coupes and Roadsters. To ensure that our creation logic is organized and we don't mix up categories, I used an Abstract Factory. We have a 'FactoryProducer' that gives us the correct factory, which then creates the specific car model. This separates the complex creation logic from the client code.
+
+Fourth, the **Simple Factory Pattern**. In our Main class, we want to avoid using the 'new' keyword everywhere. It makes the code brittle. I created helper factories for Engines, Turbos, Tracks, and Races. The Main class simply asks these factories for an object by name, and the factory handles the instantiation details.
+
+Fifth, the **Decorator Pattern**. This is used for the 'Pit Stop' feature. During a race, a player might want to boost their car with NOS. This is a temporary upgrade. Instead of creating a whole new subclass like 'ToyotaWithNOS', we simply 'wrap' our existing car object with a NOS Decorator. This wrapper intercepts the 'accelerate' command, adds the NOS boost behavior, and then passes the command to the original car.
+
+Finally, the **Template Method Pattern**. A race always follows a specific sequence: Start, Drive, Pit Stop, Finish. We don't want individual race types to mess up this order. So, I defined a 'Race' class with a 'final' method that locks down this sequence. Subclasses like 'SprintRace' and 'CircuitRace' only plug in their specific behaviors for the start and finish lines, without altering the overall flow.
+
+In conclusion, this project shows how decoupling code using these patterns leads to a system that is easier to extend, maintain, and test. Thank you."
+
+6. CONCLUSION
+-------------
+This documentation covers the architectural decisions and implementation details of the Racing In IUT project. The codebase is fully modular, adhering to SOLID principles, and effectively demonstrates the utility of standard design patterns in a simulated environment.
